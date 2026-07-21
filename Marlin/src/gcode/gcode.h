@@ -438,6 +438,18 @@ public:
     static bool select_coordinate_system(const int8_t _new);
   #endif
 
+  #if ENABLED(OPENPNP_ROTARY_AXES)
+    // Last commanded position of the 'A' (Tool 0) and 'B' (Tool 1) virtual
+    // rotary axes, for position reporting. Marlin has only one shared E
+    // position, so this remembers each tool's own target independently of
+    // which extruder is currently active.
+    static float rotary_axis_position[2];
+
+    // Report X Y Z A B instead of X Y Z E. Used by M114 and by G92's
+    // automatic position echo, so every report is consistent.
+    static void report_openpnp_position();
+  #endif
+
   static millis_t previous_move_ms, max_inactive_time;
   FORCE_INLINE static bool stepper_max_timed_out(const millis_t ms=millis()) {
     return max_inactive_time && ELAPSED(ms, previous_move_ms, max_inactive_time);

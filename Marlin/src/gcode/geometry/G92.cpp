@@ -27,6 +27,10 @@
   #include "../../feature/encoder_i2c.h"
 #endif
 
+#if ENABLED(OPENPNP_ROTARY_AXES)
+  #include "../../module/tool_change.h"
+#endif
+
 /**
  * G92: Set the Current Position to the given X [Y [Z [A [B [C [U [V [W ]]]]]]]] [E] values.
  *
@@ -83,6 +87,24 @@ void GcodeSuite::G92() {
     #endif
 
     case 0:
+      #if ALL(HAS_EXTRUDERS, OPENPNP_ROTARY_AXES)
+        // OpenPnP: 'A' sets E on Tool 0, 'B' sets E on Tool 1 (like G1).
+        // no_move=true: G92 must never cause physical motion.
+        if (parser.seenval('A')) {
+          if (motion.extruder != 0) tool_change(0, true);
+          const float v = parser.value_axis_units(E_AXIS),
+                      d = v - motion.position.e;
+          if (!NEAR_ZERO(d)) { sync_E = true; motion.position.e = v; }
+          rotary_axis_position[0] = v;
+        }
+        else if (parser.seenval('B')) {
+          if (motion.extruder != 1) tool_change(1, true);
+          const float v = parser.value_axis_units(E_AXIS),
+                      d = v - motion.position.e;
+          if (!NEAR_ZERO(d)) { sync_E = true; motion.position.e = v; }
+          rotary_axis_position[1] = v;
+        }
+      #endif
       LOOP_LOGICAL_AXES(i) {
         if (parser.seenval(AXIS_CHAR(i))) {
           const float l = parser.value_axis_units((AxisEnum)i),   // Given axis coordinate value, converted to millimeters
@@ -124,5 +146,9 @@ void GcodeSuite::G92() {
     else if (sync_E) motion.sync_plan_position_e();
   #endif
 
-  IF_DISABLED(DIRECT_STEPPING, motion.report_position());
+  #if ENABLED(OPENPNP_ROTARY_AXES)
+    IF_DISABLED(DIRECT_STEPPING, report_openpnp_position());
+  #else
+    IF_DISABLED(DIRECT_STEPPING, motion.report_position());
+  #endif
 }

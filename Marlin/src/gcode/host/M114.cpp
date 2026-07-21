@@ -115,6 +115,21 @@
 
 #endif // M114_DETAIL
 
+#if ENABLED(OPENPNP_ROTARY_AXES)
+  // Marlin only tracks one shared E position internally; A/B use the
+  // last-commanded position tracked in GcodeSuite (see gcode.cpp / G92.cpp)
+  // so both nozzles report correctly regardless of which one is the
+  // currently active tool.
+  void GcodeSuite::report_openpnp_position() {
+    const xyz_pos_t lpos = motion.position.asLogical();
+    SERIAL_ECHOPGM("X:", lpos.x, " Y:", lpos.y, " Z:", lpos.z,
+                   " A:", rotary_axis_position[0],
+                   " B:", rotary_axis_position[1]);
+    SERIAL_EOL();
+    stepper.report_a_position(planner.position);
+  }
+#endif
+
 /**
  * M114: Get Current Position
  *
@@ -149,7 +164,11 @@ void GcodeSuite::M114() {
   TERN_(M114_REALTIME, if (parser.seen_test('R')) return motion.report_position_real());
 
   TERN_(M114_LEGACY, planner.synchronize());
-  motion.report_position_projected();
+  #if ENABLED(OPENPNP_ROTARY_AXES)
+    report_openpnp_position();
+  #else
+    motion.report_position_projected();
+  #endif
 
   TERN_(FULL_REPORT_TO_HOST_FEATURE, motion.report_current_grblstate_moving());
 }

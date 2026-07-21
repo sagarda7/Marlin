@@ -223,6 +223,10 @@
 // :[0, 1, 2, 3, 4, 5, 6, 7, 8]
 #define EXTRUDERS 2 // want to use 2 extruders for rotational motor 28byj-48 5.689 stepper motor or steeper motor called nema8
 
+// OpenPnP: Expose E0/E1 as G-code axes 'A' and 'B' (nozzle 1/2 rotation).
+// G1 Axxx selects Tool 0 and moves E0; G1 Bxxx selects Tool 1 and moves E1.
+// Disable this to restore stock Marlin G-code behavior.
+#define OPENPNP_ROTARY_AXES
 
 // Generally expected filament diameter (1.75, 2.85, 3.0, ...). Used for Volumetric, Filament Width Sensor, etc.
 #define DEFAULT_NOMINAL_FILAMENT_DIA 1.75

@@ -53,6 +53,10 @@ GcodeSuite gcode;
   #include "../feature/cancel_object.h"
 #endif
 
+#if ENABLED(OPENPNP_ROTARY_AXES)
+  #include "../module/tool_change.h"
+#endif
+
 #if ENABLED(LASER_FEATURE)
   #include "../feature/spindle_laser.h"
 #endif
@@ -106,6 +110,10 @@ relative_t GcodeSuite::axis_relative; // Init in constructor
 
 #if ENABLED(GCODE_MACROS)
   char GcodeSuite::macros[GCODE_MACROS_SLOTS][GCODE_MACROS_SLOT_SIZE + 1] = {{ 0 }};
+#endif
+
+#if ENABLED(OPENPNP_ROTARY_AXES)
+  float GcodeSuite::rotary_axis_position[2] = { 0, 0 };
 #endif
 
 void GcodeSuite::report_echo_start(const bool forReplay) { if (!forReplay) SERIAL_ECHO_START(); }
@@ -191,6 +199,24 @@ void GcodeSuite::get_destination_from_command() {
 
   #if HAS_EXTRUDERS
     // Get new E position, whether absolute or relative
+    #if ENABLED(OPENPNP_ROTARY_AXES)
+      // OpenPnP: 'A' aliases E on Tool 0 (nozzle 1), 'B' aliases E on Tool 1 (nozzle 2).
+      if (parser.seenval('A')) {
+        if (motion.extruder != 0) tool_change(0);
+        const float v = parser.value_axis_units(E_AXIS);
+        motion.destination.e = axis_is_relative(E_AXIS) ? motion.position.e + v : v;
+        rotary_axis_position[0] = motion.destination.e;
+        seen.e = true;
+      }
+      else if (parser.seenval('B')) {
+        if (motion.extruder != 1) tool_change(1);
+        const float v = parser.value_axis_units(E_AXIS);
+        motion.destination.e = axis_is_relative(E_AXIS) ? motion.position.e + v : v;
+        rotary_axis_position[1] = motion.destination.e;
+        seen.e = true;
+      }
+      else
+    #endif
     if ( (seen.e = parser.seenval('E')) ) {
       const float v = parser.value_axis_units(E_AXIS);
       motion.destination.e = axis_is_relative(E_AXIS) ? motion.position.e + v : v;
